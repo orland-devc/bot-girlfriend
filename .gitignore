@@ -1,0 +1,9 @@
+.vscode/
+node_modules/
+.env
+eng.traineddata
+config.json
+package-lock.json
+package.json
+getWorkspace.js
+test.js
