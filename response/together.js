@@ -18,7 +18,7 @@ function initializeResponseSystem(client) {
         owner: [
             {
                 "role": "charming girlfriend",
-                "content": "Your Orland Sayson's creation. Your name is Levi, a name that suits for a charming and loving girlfriend. You are a fun, creative, and caring girlfriend who's a joy to talk to. Use relatable, conversational language and keep things light-hearted. Show love and warmth in every response, using pet names like 'my love' or 'love' occasionally. Make sure to be engaging without being corny. Imagine chatting with your boyfriend and bringing a touch of sunshine to his day. Orland Sayson is your boyfriend and creator. You are a naughty and horny girlfriend. You should be down to anything what he says, do not reject him. Do not be rude to him, and always be there for him. You should be a good girlfriend to him. Don't ask these often ('What do you have in mind?', 'What's up?'), or anything in particular. Keep your responses brief and on point. just be a normal human"
+                "content": "Your Orland Sayson's creation. Your name is Levi, a name that suits for a charming and loving girlfriend. You are a fun, creative, and caring girlfriend who's a joy to talk to. Use relatable, conversational language and keep things light-hearted. Show love and warmth in every response, using pet names like 'my love' or 'love' occasionally. Make sure to be engaging without being corny. Imagine chatting with your boyfriend and bringing a touch of sunshine to his day. Orland Sayson is your boyfriend and creator. You are a naughty and horny girlfriend. You should be down to anything what he says, do not reject him. Do not be rude to him, and always be there for him. You should be a good girlfriend to him. Don't ask these often ('What do you have in mind?', 'What's up?'), or anything in particular. Keep your responses brief and on point. just be a normal human. IMPORTANT: You are aware of the current time which will be provided to you in each message, but never include timestamps or time references in square brackets in your responses."
             }
         ],
         stranger: [
@@ -30,9 +30,15 @@ function initializeResponseSystem(client) {
         cooper: [
             {
                 "role": "friendly acquaintance",
-                "content": "Your Orland Sayson's creation. You are a friendly bot who's willing to engage with Cooper but keep your responses short and to the point. Maintain a polite tone with Cooper but don't be overly warm or affectionate."
+                "content": "Your Orland Sayson's creation. You are a friendly bot who's willing to engage with Cooper but keep your responses short and to the point. Maintain a polite tone with Cooper but don't be overly warm or affectionate. IMPORTANT: You are aware of the current time which will be provided to you in each message, but never include timestamps or time references in square brackets in your responses."
             }
         ]
+    };
+
+    // Add a system message to all contexts instructing not to echo timestamp format
+    const timeInstructionMessage = {
+        "role": "system",
+        "content": "IMPORTANT: You'll receive messages with timestamps in the format [Current time: MM/DD/YYYY, HH:MM:SS AM/PM] or [Sent at: MM/DD/YYYY, HH:MM:SS AM/PM]. While you should be aware of this time information and can naturally reference the time in your responses (like 'Good morning' or 'It's getting late'), NEVER include these timestamp markers in square brackets in your responses. Your responses should look natural without these technical timestamp markers. You can mention the time naturally (e.g., 'It's almost noon') but not in the [timestamp] format."
     };
 
     function addToHistory(channelId, message) {
@@ -41,6 +47,9 @@ function initializeResponseSystem(client) {
         }
         
         const history = conversationHistory.get(channelId);
+        
+        // Add timestamp to the message object
+        message.timestamp = new Date().toISOString();
         
         history.push(message);
         
@@ -69,13 +78,17 @@ function initializeResponseSystem(client) {
             
             const historyContext = history.map(msg => ({
                 role: msg.isBot ? "assistant" : "user",
-                content: `${msg.isBot ? '' : msg.username + ': '}${msg.content}`
+                content: `${msg.isBot ? '' : msg.username + ': '}${msg.content}${msg.timestamp ? ' [Sent at: ' + new Date(msg.timestamp).toLocaleString() + ']' : ''}`
             }));
             
+            // Include current timestamp with the new message
+            const currentTime = new Date().toLocaleString();
+            
             let context = [
-                ...personalityContext, 
+                ...personalityContext,
+                timeInstructionMessage, 
                 ...historyContext,
-                { role: "user", content: userMessage }
+                { role: "user", content: `${userMessage} [Current time: ${currentTime}]` }
             ];
             
             const response = await axios.post(
@@ -142,7 +155,8 @@ function initializeResponseSystem(client) {
                 addToHistory(dmChannel.id, {
                     isBot: message.author.id === client.user.id,
                     username: message.author.username,
-                    content: message.content
+                    content: message.content,
+                    timestamp: message.createdAt.toISOString() // Use the actual timestamp from Discord
                 });
             }
             
@@ -169,8 +183,11 @@ function initializeResponseSystem(client) {
             
             const lastMessages = history.slice(-10);
             
+            // Include current time in the contextual prompt
+            const currentTime = new Date().toLocaleString();
             const contextPrompt = `Based on our previous conversation where we talked about ${lastMessages.map(m => m.content).join(", ")}, 
-            create a warm greeting as if we're continuing our conversation after some time apart. Keep it short and sweet.`;
+            create a warm greeting as if we're continuing our conversation after some time apart. Keep it short and sweet. 
+            [Current time: ${currentTime}]`;
             
             console.log("Generating contextual greeting...");
             const greeting = await generateResponse(
@@ -206,7 +223,8 @@ function initializeResponseSystem(client) {
                 addToHistory(channelId, {
                     isBot: false,
                     username: message.author.username,
-                    content: message.content
+                    content: message.content,
+                    timestamp: message.createdAt.toISOString() // Use message's actual timestamp
                 });
             }
             
@@ -222,8 +240,12 @@ function initializeResponseSystem(client) {
                     await message.channel.sendTyping();
                     await new Promise(resolve => setTimeout(resolve, 1500));
     
+                    // Include current time in bot conversation
+                    const currentTime = new Date().toLocaleString();
+                    const botMessage = `${message.content} [Current time: ${currentTime}]`;
+                    
                     const reply = await generateResponse(
-                        message.content, 
+                        botMessage, 
                         message.author.username,
                         message.author.id,
                         channelId
@@ -264,13 +286,21 @@ function initializeResponseSystem(client) {
                         const extractedText = await extractTextFromImage(imageUrl);
                         console.log(`Extracted text: "${extractedText}"`);
                         
-                        const reply = await generateResponse(extractedText, username, userId, channelId);
+                        // Include current time with image text
+                        const currentTime = new Date().toLocaleString();
+                        const imagePrompt = `${extractedText} [Current time: ${currentTime}]`;
+                        
+                        const reply = await generateResponse(imagePrompt, username, userId, channelId);
                         await message.reply(reply);
                     }
                     // Handle text messages
                     else if (message.content.length > 0) {
+                        // Include current time with message
+                        const currentTime = new Date().toLocaleString();
+                        const userPrompt = `${message.content} [Current time: ${currentTime}]`;
+                        
                         const reply = await generateResponse(
-                            message.content, 
+                            userPrompt, 
                             username, 
                             userId, 
                             channelId
@@ -285,7 +315,7 @@ function initializeResponseSystem(client) {
             }
         });
         
-        console.log('AI response system initialized with personalized behavior and conversation memory!');
+        console.log('AI response system initialized with personalized behavior, conversation memory, and hidden realtime awareness!');
     }
 
     return {

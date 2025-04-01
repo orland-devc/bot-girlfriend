@@ -24,8 +24,10 @@ const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 
 // In index.js, update the initialization section:
 client.once('ready', async () => {
+    const currentDateTime = new Date().toLocaleString(); // Get the current date and time
     console.log(`Logged in as ${client.user.tag}!`);
-    
+    console.log(`Current date and time: ${currentDateTime}`); // Log the time and date
+        
     const commands = [
         new SlashCommandBuilder().setName('clockin').setDescription('Clock in to Clockify'),
         new SlashCommandBuilder().setName('clockout').setDescription('Clock out from Clockify'),
