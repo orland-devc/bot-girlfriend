@@ -2,7 +2,7 @@ const axios = require('axios');
 const Tesseract = require('tesseract.js');
 
 function initializeResponseSystem(client) {
-    const API_KEY = process.env.API_KEY;
+    const API_KEY = "28e13283f94d929a31efd238777e9ab31397c10daf39f20fad930bace8bd5a9a";
     const API_MODEL = process.env.API_MODEL;
     const AXIOS_POST = process.env.AXIOS_POST;
     const COOPER_DEV_BOT_ID = process.env.COOPER_DEV_BOT_ID;
@@ -238,7 +238,7 @@ function initializeResponseSystem(client) {
                     botConvoCount++;
                     console.log(`Cooper Dev Bot spoke. Convo count: ${botConvoCount}`);
                     await message.channel.sendTyping();
-                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
     
                     // Include current time in bot conversation
                     const currentTime = new Date().toLocaleString();

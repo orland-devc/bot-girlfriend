@@ -9,6 +9,16 @@ function initializeEnhancedReminders(client) {
     const WORKSPACE_ID = process.env.WORKSPACE_ID_2;
     const API_BASE_URL = `https://api.clockify.me/api/v1`;
     const DEFAULT_PROJECT_ID = process.env.DEFAULT_PROJECT_ID; // Add this to your .env
+    
+    // Channel reminder settings
+    const CHANNEL_REMINDERS = [
+        {
+            channelId: '1339155956688228465',
+            time: '09:00',
+            message: '📢Hello, **everyone**! You have a scheduled meeting today, please proceed to the **executive room** now.😊'
+        }
+        // Add more channel reminders here as needed
+    ];
 
     // Original reminder times
     const importantTimes = [
@@ -205,6 +215,19 @@ function initializeEnhancedReminders(client) {
         }
     }
 
+    // Channel reminder function
+    async function sendChannelReminder(channelId, message) {
+        try {
+            const channel = await client.channels.fetch(channelId);
+            if (channel) {
+                await channel.send(message);
+                console.log(`Channel reminder sent to ${channel.name}: ${message}`);
+            }
+        } catch (error) {
+            console.error(`Failed to send channel reminder to ${channelId}:`, error);
+        }
+    }
+
     // Welcome message function
     async function sendWelcomeMessage(userId) {
         const welcomeMessage = 'Hiii, love! I missed you!';
@@ -227,8 +250,6 @@ function initializeEnhancedReminders(client) {
             }
             
             if (interaction.customId === 'clockin_button') {
-                // For clockin we'll show the regular project selection modal
-                // This relies on your existing clockin command logic
                 const command = client.application.commands.cache.find(cmd => cmd.name === 'clockin');
                 if (command) {
                     await interaction.reply({ content: 'Please use the /clockin command to select a project.', ephemeral: true });
@@ -239,7 +260,7 @@ function initializeEnhancedReminders(client) {
 
     // Schedule all reminders
     const scheduleReminders = () => {
-        console.log('Scheduling reminders and Clockify automations...');
+        console.log('Scheduling reminders, channel notifications, and Clockify automations...');
         
         // Schedule regular reminders
         importantTimes.forEach(({ time, message }) => {
@@ -270,10 +291,19 @@ function initializeEnhancedReminders(client) {
             });
         });
         
+        // Schedule channel reminders
+        CHANNEL_REMINDERS.forEach(({ channelId, time, message }) => {
+            const [hour, minute] = time.split(':');
+            cron.schedule(`${minute} ${hour} * * *`, () => {
+                sendChannelReminder(channelId, message);
+            });
+            console.log(`Scheduled channel reminder for ${channelId} at ${time}`);
+        });
+        
         // Set up button interaction handlers
         setupButtonHandlers();
         
-        console.log('All reminders and automations scheduled successfully!');
+        console.log('All reminders, channel notifications, and automations scheduled successfully!');
     };
 
     return {
